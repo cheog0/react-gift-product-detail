@@ -1,6 +1,9 @@
 import { useThemeInfoQuery } from '@/hooks/queries';
 import styled from '@emotion/styled';
 import { theme as appTheme } from '@/styles/theme';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ApiError } from '@/lib/apiClient';
 
 export function ThemeInfoSection({ themeId }: { themeId: number }) {
   const { data: theme } = useThemeInfoQuery(themeId);
