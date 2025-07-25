@@ -31,6 +31,9 @@ export const queries = {
       ['products', productId, 'summary'] as const,
     fn: (productId: string | number) => apiService.getProductSummary(productId),
   },
+  products: {
+    key: ['products'] as const,
+  },
 } as const;
 
 export function useThemesQuery() {
@@ -148,58 +151,9 @@ export function useCreateOrderMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (orderData: GiftOrderForm) =>
-      api.ordersApi.createOrder(orderData),
+    mutationFn: (orderData: GiftOrderForm) => apiService.createOrder(orderData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queries.products.key });
-    },
-  });
-}
-
-export function useToggleWishMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      productId: _productId,
-      isWished: _isWished,
-    }: {
-      productId: number;
-      isWished: boolean;
-    }) => {
-      return { success: true };
-    },
-    onMutate: async ({ productId, isWished }) => {
-      await queryClient.cancelQueries({
-        queryKey: queries.productWish.key(productId),
-      });
-      const previousWish = queryClient.getQueryData(
-        queries.productWish.key(productId)
-      ) as ProductWish | undefined;
-
-      queryClient.setQueryData(
-        queries.productWish.key(productId),
-        (old: ProductWish | undefined) => {
-          if (!old) return { wishCount: 0, isWished: false };
-          const newData = {
-            ...old,
-            isWished: !isWished,
-            wishCount: isWished ? old.wishCount - 1 : old.wishCount + 1,
-          };
-          return newData;
-        }
-      );
-
-      return { previousWish };
-    },
-    onError: (_err, mutationVariables, context) => {
-      if (context?.previousWish) {
-        const productId = mutationVariables.productId;
-        queryClient.setQueryData(
-          queries.productWish.key(productId),
-          context.previousWish
-        );
-      }
     },
     onSettled: () => {},
   });
