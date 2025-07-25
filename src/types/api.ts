@@ -7,14 +7,3 @@ export interface PaginatedResponse<T> {
 }
 
 export type ThemeProductsResponse = PaginatedResponse<Product>;
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  email: string;
-  name: string;
-  authToken: string;
-}
