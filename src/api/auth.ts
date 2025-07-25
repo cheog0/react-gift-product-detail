@@ -1,9 +1,10 @@
 import { apiClient } from '@/lib/apiClient';
-import type { LoginRequest, LoginResponse } from '@/types/api';
-import { AUTH_API } from '@/constants/endpoints';
 
 export const authApi = {
-  login: (credentials: LoginRequest): Promise<LoginResponse> => {
-    return apiClient.post<LoginResponse>(AUTH_API.LOGIN, credentials);
+  login: (credentials: { email: string; password: string }) => {
+    return apiClient.post<{
+      authToken: string;
+      user: { id: number; email: string; name: string };
+    }>('/api/login', credentials);
   },
 };
