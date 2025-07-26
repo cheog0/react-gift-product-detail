@@ -17,9 +17,11 @@ const DEFAULT_RANK = 'MANY_WISH';
 const THEME_PATH = '/themes/:themeId';
 
 function ThemesSection() {
-  const { data: themes } = useThemesQuery();
+  const { data: themes, isLoading: loading, error } = useThemesQuery();
   const navigate = useNavigate();
 
+  if (loading) return <Spinner />;
+  if (error) return null;
   if (!themes || themes.length === 0) return null;
 
   const handleThemeClick = (theme: GiftTheme) => {
@@ -38,7 +40,21 @@ function RankingSection({
   rankType: string;
   onFilterChange: (nextTarget: string, nextRank: string) => void;
 }) {
-  const { data: products } = useRankingProductsQuery(targetType, rankType);
+  const {
+    data: products,
+    isLoading: loading,
+    error,
+  } = useRankingProductsQuery(targetType, rankType);
+
+  if (loading) {
+    return (
+      <RankingLoadingContainer>
+        <Spinner />
+      </RankingLoadingContainer>
+    );
+  }
+
+  if (error) return null;
 
   return (
     <RealTimeRanking
@@ -109,4 +125,14 @@ const MobileViewport = styled.div`
     max-width: 100%;
     box-shadow: none;
   }
+`;
+
+const RankingLoadingContainer = styled.div`
+  min-height: 800px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: ${theme.colors.default};
+  border-radius: 16px;
+  margin: 0 0 24px 0;
 `;
