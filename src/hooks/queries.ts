@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useInfiniteQuery,
 } from '@tanstack/react-query';
-import type { GiftOrderForm } from '@/types';
+import type { GiftOrderForm, ProductWish } from '@/types';
 import * as api from '@/api';
 
 export const queries = {
@@ -31,6 +31,28 @@ export const queries = {
       ['products', productId, 'summary'] as const,
     fn: (productId: string | number) =>
       api.productsApi.getProductSummary(productId),
+  },
+  product: {
+    key: (productId: string | number) => ['products', productId] as const,
+    fn: (productId: string | number) => api.productsApi.getProduct(productId),
+  },
+  productDetail: {
+    key: (productId: string | number) =>
+      ['products', productId, 'detail'] as const,
+    fn: (productId: string | number) =>
+      api.productsApi.getProductDetail(productId),
+  },
+  productReviews: {
+    key: (productId: string | number) =>
+      ['products', productId, 'reviews'] as const,
+    fn: (productId: string | number) =>
+      api.productsApi.getProductReviews(productId),
+  },
+  productWish: {
+    key: (productId: string | number) =>
+      ['products', productId, 'wish'] as const,
+    fn: (productId: string | number) =>
+      api.productsApi.getProductWish(productId),
   },
   products: {
     key: ['products'] as const,
@@ -98,6 +120,36 @@ export function useProductWishQuery(productId: string | number) {
   });
 }
 
+export function useProductQuery(productId: string | number) {
+  return useQuery({
+    queryKey: queries.product.key(productId),
+    queryFn: () => queries.product.fn(productId),
+    enabled: !!productId,
+  });
+}
+
+export function useProductDetailQuery(productId: string | number) {
+  return useQuery({
+    queryKey: queries.productDetail.key(productId),
+    queryFn: () => queries.productDetail.fn(productId),
+    enabled: !!productId,
+  });
+}
+export function useProductReviewsQuery(productId: string | number) {
+  return useQuery({
+    queryKey: queries.productReviews.key(productId),
+    queryFn: () => queries.productReviews.fn(productId),
+    enabled: !!productId,
+  });
+}
+export function useProductWishQuery(productId: string | number) {
+  return useQuery({
+    queryKey: queries.productWish.key(productId),
+    queryFn: () => queries.productWish.fn(productId),
+    enabled: !!productId,
+  });
+}
+
 export function useThemeProductsInfiniteQuery(
   themeId: string | number,
   limit: number = 20
@@ -147,6 +199,55 @@ export function useCreateOrderMutation() {
       api.ordersApi.createOrder(orderData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queries.products.key });
+    },
+    onSettled: () => {},
+  });
+}
+
+export function useToggleWishMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      productId: _productId,
+      isWished: _isWished,
+    }: {
+      productId: number;
+      isWished: boolean;
+    }) => {
+      return { success: true };
+    },
+    onMutate: async ({ productId, isWished }) => {
+      await queryClient.cancelQueries({
+        queryKey: queries.productWish.key(productId),
+      });
+      const previousWish = queryClient.getQueryData(
+        queries.productWish.key(productId)
+      ) as ProductWish | undefined;
+
+      queryClient.setQueryData(
+        queries.productWish.key(productId),
+        (old: ProductWish | undefined) => {
+          if (!old) return { wishCount: 0, isWished: false };
+          const newData = {
+            ...old,
+            isWished: !isWished,
+            wishCount: isWished ? old.wishCount - 1 : old.wishCount + 1,
+          };
+          return newData;
+        }
+      );
+
+      return { previousWish };
+    },
+    onError: (_err, mutationVariables, context) => {
+      if (context?.previousWish) {
+        const productId = mutationVariables.productId;
+        queryClient.setQueryData(
+          queries.productWish.key(productId),
+          context.previousWish
+        );
+      }
     },
     onSettled: () => {},
   });
