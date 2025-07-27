@@ -5,7 +5,6 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-  onRetry?: () => void;
 }
 
 interface State {
@@ -28,18 +27,13 @@ export class ErrorBoundary extends Component<Props, State> {
     this.props.onError?.(error, errorInfo);
   }
 
-  handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
-    this.props.onRetry?.();
-  };
-
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      return <NotFoundPage onRetry={this.handleRetry} />;
+      return <NotFoundPage />;
     }
 
     return this.props.children;
