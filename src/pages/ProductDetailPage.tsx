@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import { Heart } from 'lucide-react';
 import { theme } from '@/styles/theme';
 import { NavigationHeader } from '@/components/shared/layout';
-import { Spinner } from '@/components/shared/ui';
 import {
   useProductQuery,
   useProductDetailQuery,
@@ -27,17 +26,11 @@ export default function ProductDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>('상품설명');
 
-  const {
-    data: product,
-    isLoading: productLoading,
-    error: productError,
-  } = useProductQuery(numericProductId);
-  const { data: productDetail, isLoading: detailLoading } =
-    useProductDetailQuery(numericProductId);
-  const { data: reviewData, isLoading: reviewLoading } =
-    useProductReviewsQuery(numericProductId);
-  const { data: wishData, isLoading: wishLoading } =
-    useProductWishQuery(numericProductId);
+  const { data: product, isLoading: productLoading } =
+    useProductQuery(numericProductId);
+  const { data: productDetail } = useProductDetailQuery(numericProductId);
+  const { data: reviewData } = useProductReviewsQuery(numericProductId);
+  const { data: wishData } = useProductWishQuery(numericProductId);
 
   const toggleWishMutation = useToggleWishMutation();
 
@@ -68,9 +61,17 @@ export default function ProductDetailPage() {
     return `${price.sellingPrice.toLocaleString()}원`;
   };
 
-  if (productLoading || !numericProductId) return <Spinner />;
-  if (productError) return <div>상품 정보를 불러올 수 없습니다.</div>;
-  if (!product) return <div>상품이 없습니다.</div>;
+  if (!numericProductId) {
+    throw new Error('상품 ID가 유효하지 않습니다.');
+  }
+
+  if (productLoading) {
+    return null;
+  }
+
+  if (!product) {
+    throw new Error('상품 정보를 찾을 수 없습니다.');
+  }
 
   return (
     <AppContainer>
@@ -122,71 +123,51 @@ export default function ProductDetailPage() {
             </ActionButton>
           </ActionButtonsContainer>
 
-          {/* Tab Content */}
           {activeTab === '상품설명' && (
             <TabContent>
-              {detailLoading ? (
-                <LoadingText>상품 설명을 불러오는 중...</LoadingText>
-              ) : (
-                <ProductDescription
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      productDetail?.description || '상품 설명이 없습니다.',
-                  }}
-                />
-              )}
+              <ProductDescription
+                dangerouslySetInnerHTML={{
+                  __html: productDetail?.description || '상품 설명이 없습니다.',
+                }}
+              />
             </TabContent>
           )}
 
           {activeTab === '선물후기' && (
             <TabContent>
-              {reviewLoading ? (
-                <LoadingText>리뷰를 불러오는 중...</LoadingText>
+              {reviewData?.reviews && reviewData.reviews.length > 0 ? (
+                <ReviewList>
+                  {reviewData.reviews.map((review: any) => (
+                    <ReviewItem key={review.id}>
+                      <ReviewAuthor>{review.authorName}</ReviewAuthor>
+                      <ReviewContent>{review.content}</ReviewContent>
+                    </ReviewItem>
+                  ))}
+                </ReviewList>
               ) : (
-                <>
-                  {reviewData?.reviews && reviewData.reviews.length > 0 ? (
-                    <ReviewList>
-                      {reviewData.reviews.map((review: any) => (
-                        <ReviewItem key={review.id}>
-                          <ReviewAuthor>{review.authorName}</ReviewAuthor>
-                          <ReviewContent>{review.content}</ReviewContent>
-                        </ReviewItem>
-                      ))}
-                    </ReviewList>
-                  ) : (
-                    <EmptyReview>아직 후기가 없습니다.</EmptyReview>
-                  )}
-                </>
+                <EmptyReview>아직 후기가 없습니다.</EmptyReview>
               )}
             </TabContent>
           )}
 
           {activeTab === '상세정보' && (
             <TabContent>
-              {detailLoading ? (
-                <LoadingText>상세 정보를 불러오는 중...</LoadingText>
+              {productDetail?.announcements &&
+              productDetail.announcements.length > 0 ? (
+                <CleanDetailSection>
+                  {productDetail.announcements
+                    .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
+                    .map((item: any, index: number) => (
+                      <DetailSection key={index}>
+                        <DetailSectionTitle>{item.name}</DetailSectionTitle>
+                        <DetailSectionContent>
+                          {item.value}
+                        </DetailSectionContent>
+                      </DetailSection>
+                    ))}
+                </CleanDetailSection>
               ) : (
-                <>
-                  {productDetail?.announcements &&
-                  productDetail.announcements.length > 0 ? (
-                    <CleanDetailSection>
-                      {productDetail.announcements
-                        .sort(
-                          (a: any, b: any) => a.displayOrder - b.displayOrder
-                        )
-                        .map((item: any, index: number) => (
-                          <DetailSection key={index}>
-                            <DetailSectionTitle>{item.name}</DetailSectionTitle>
-                            <DetailSectionContent>
-                              {item.value}
-                            </DetailSectionContent>
-                          </DetailSection>
-                        ))}
-                    </CleanDetailSection>
-                  ) : (
-                    <LoadingText>상세 정보가 없습니다.</LoadingText>
-                  )}
-                </>
+                <LoadingText>상세 정보가 없습니다.</LoadingText>
               )}
             </TabContent>
           )}
@@ -195,7 +176,7 @@ export default function ProductDetailPage() {
         <BottomSection>
           <LikeButton
             onClick={handleWishClick}
-            disabled={wishLoading || toggleWishMutation.isPending}
+            disabled={toggleWishMutation.isPending}
           >
             <Heart
               size={20}

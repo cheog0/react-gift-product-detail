@@ -15,7 +15,6 @@ import { orderSchema } from '@/schemas/giftOrderSchemas';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProductQuery, useCreateOrderMutation } from '@/hooks/queries';
-import { Spinner } from '@/components/shared/ui/Spinner';
 
 type OrderForm = z.infer<typeof orderSchema>;
 
@@ -26,11 +25,9 @@ export default function GiftOrderPage() {
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
-  const {
-    data: product,
-    error,
-    isLoading: loading,
-  } = useProductQuery(Number(productId));
+  const { data: product, isLoading: productLoading } = useProductQuery(
+    Number(productId)
+  );
   const createOrderMutation = useCreateOrderMutation();
 
   const {
@@ -125,14 +122,12 @@ export default function GiftOrderPage() {
     setValue('selectedTemplate', template);
   };
 
+  if (productLoading) {
+    return null;
+  }
+
   if (!product) {
-    return (
-      <AppContainer>
-        <MobileViewport>
-          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-        </MobileViewport>
-      </AppContainer>
-    );
+    throw new Error('상품 정보를 찾을 수 없습니다.');
   }
 
   const openModal = () => {
