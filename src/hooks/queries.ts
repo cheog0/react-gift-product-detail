@@ -26,12 +26,7 @@ export const queries = {
     fn: (targetType: string, rankType: string) =>
       api.productsApi.getRankingProducts(targetType, rankType),
   },
-  productSummary: {
-    key: (productId: string | number) =>
-      ['products', productId, 'summary'] as const,
-    fn: (productId: string | number) =>
-      api.productsApi.getProductSummary(productId),
-  },
+
   product: {
     key: (productId: string | number) => ['products', productId] as const,
     fn: (productId: string | number) => api.productsApi.getProduct(productId),
@@ -60,18 +55,30 @@ export const queries = {
 } as const;
 
 export function useThemesQuery() {
-  return useQuery({
+  const query = useQuery({
     queryKey: queries.themes.key,
     queryFn: queries.themes.fn,
   });
+
+  if (query.error && !query.isLoading) {
+    throw query.error;
+  }
+
+  return query;
 }
 
 export function useThemeInfoQuery(themeId: string | number) {
-  return useQuery({
+  const query = useQuery({
     queryKey: queries.themeInfo.key(themeId),
     queryFn: () => queries.themeInfo.fn(themeId),
     enabled: !!themeId,
   });
+
+  if (query.error && !query.isLoading) {
+    throw query.error;
+  }
+
+  return query;
 }
 
 export function useThemeProductsQuery(themeId: string | number) {
@@ -83,49 +90,31 @@ export function useThemeProductsQuery(themeId: string | number) {
 }
 
 export function useRankingProductsQuery(targetType: string, rankType: string) {
-  return useQuery({
+  const query = useQuery({
     queryKey: queries.rankingProducts.key(targetType, rankType),
     queryFn: () => queries.rankingProducts.fn(targetType, rankType),
     enabled: !!targetType && !!rankType,
   });
+
+  if (query.error && !query.isLoading) {
+    throw query.error;
+  }
+
+  return query;
 }
 
 export function useProductQuery(productId: string | number) {
-  return useQuery({
+  const query = useQuery({
     queryKey: queries.product.key(productId),
     queryFn: () => queries.product.fn(productId),
     enabled: !!productId,
   });
-}
 
-export function useProductDetailQuery(productId: string | number) {
-  return useQuery({
-    queryKey: queries.productDetail.key(productId),
-    queryFn: () => queries.productDetail.fn(productId),
-    enabled: !!productId,
-  });
-}
-export function useProductReviewsQuery(productId: string | number) {
-  return useQuery({
-    queryKey: queries.productReviews.key(productId),
-    queryFn: () => queries.productReviews.fn(productId),
-    enabled: !!productId,
-  });
-}
-export function useProductWishQuery(productId: string | number) {
-  return useQuery({
-    queryKey: queries.productSummary.key(productId),
-    queryFn: () => queries.productSummary.fn(productId),
-    enabled: !!productId,
-  });
-}
+  if (query.error && !query.isLoading) {
+    throw query.error;
+  }
 
-export function useProductQuery(productId: string | number) {
-  return useQuery({
-    queryKey: queries.product.key(productId),
-    queryFn: () => queries.product.fn(productId),
-    enabled: !!productId,
-  });
+  return query;
 }
 
 export function useProductDetailQuery(productId: string | number) {
@@ -154,7 +143,7 @@ export function useThemeProductsInfiniteQuery(
   themeId: string | number,
   limit: number = 20
 ) {
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey: [...queries.themeProducts.key(themeId), 'infinite'],
     queryFn: ({ pageParam = 0 }) =>
       api.themesApi.getThemeProductsWithPagination(themeId, {
@@ -167,6 +156,12 @@ export function useThemeProductsInfiniteQuery(
     },
     initialPageParam: 0,
   });
+
+  if (query.error && !query.isLoading) {
+    throw query.error;
+  }
+
+  return query;
 }
 
 export function useLoginMutation() {

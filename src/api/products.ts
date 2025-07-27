@@ -15,9 +15,6 @@ export const productsApi = {
     return apiClient.get<Product[]>(`/api/products/ranking?${params}`);
   },
 
-  getProductSummary: (productId: string | number): Promise<Product> => {
-    return apiClient.get<Product>(`/api/products/${productId}/summary`);
-  },
   getProduct: (productId: string | number): Promise<Product> => {
     return apiClient.get<Product>(`/api/products/${productId}`);
   },
