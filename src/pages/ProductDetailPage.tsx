@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { Heart } from 'lucide-react';
 import { theme } from '@/styles/theme';
 import { NavigationHeader } from '@/components/shared/layout';
+import { Spinner } from '@/components/shared/ui';
 import {
   useProductQuery,
   useProductDetailQuery,
@@ -26,12 +27,19 @@ export default function ProductDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>('상품설명');
 
-  const { data: product } = useProductQuery(numericProductId);
-  const { data: productDetail } = useProductDetailQuery(numericProductId);
-  const { data: reviewData } = useProductReviewsQuery(numericProductId);
-  const { data: wishData } = useProductWishQuery(numericProductId);
+  const {
+    data: product,
+    isLoading: productLoading,
+    error: productError,
+  } = useProductQuery(numericProductId);
+  const { data: productDetail, isLoading: detailLoading } =
+    useProductDetailQuery(numericProductId);
+  const { data: reviewData, isLoading: reviewLoading } =
+    useProductReviewsQuery(numericProductId);
+  const { data: wishData, isLoading: wishLoading } =
+    useProductWishQuery(numericProductId);
 
-  const { mutate, isPending } = useToggleWishMutation();
+  const toggleWishMutation = useToggleWishMutation();
 
   const handleBackClick = () => {
     navigate(-1);
@@ -44,10 +52,8 @@ export default function ProductDetailPage() {
   };
 
   const handleWishClick = () => {
-    if (isPending) return;
-
     if (wishData && product) {
-      mutate({
+      toggleWishMutation.mutate({
         productId: product.id,
         isWished: wishData.isWished,
       });
@@ -62,19 +68,9 @@ export default function ProductDetailPage() {
     return `${price.sellingPrice.toLocaleString()}원`;
   };
 
-  if (!numericProductId) {
-    throw new Error('상품 ID가 유효하지 않습니다.');
-  }
-
-  if (!product) {
-    return (
-      <AppContainer>
-        <MobileViewport>
-          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-        </MobileViewport>
-      </AppContainer>
-    );
-  }
+  if (productLoading || !numericProductId) return <Spinner />;
+  if (productError) return <div>상품 정보를 불러올 수 없습니다.</div>;
+  if (!product) return <div>상품이 없습니다.</div>;
 
   return (
     <AppContainer>
@@ -82,7 +78,7 @@ export default function ProductDetailPage() {
         <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
 
         <ProductImageContainer>
-          <ProductImage src={product.imageURL} alt={product.name} />
+          <ProductImage src={product?.imageURL} alt={product.name} />
         </ProductImageContainer>
 
         <ProductInfoSection>
@@ -126,58 +122,81 @@ export default function ProductDetailPage() {
             </ActionButton>
           </ActionButtonsContainer>
 
+          {/* Tab Content */}
           {activeTab === '상품설명' && (
             <TabContent>
-              <ProductDescription
-                dangerouslySetInnerHTML={{
-                  __html: productDetail?.description || '상품 설명이 없습니다.',
-                }}
-              />
+              {detailLoading ? (
+                <LoadingText>상품 설명을 불러오는 중...</LoadingText>
+              ) : (
+                <ProductDescription
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      productDetail?.description || '상품 설명이 없습니다.',
+                  }}
+                />
+              )}
             </TabContent>
           )}
 
           {activeTab === '선물후기' && (
             <TabContent>
-              {reviewData?.reviews && reviewData.reviews.length > 0 ? (
-                <ReviewList>
-                  {reviewData.reviews.map((review: any) => (
-                    <ReviewItem key={review.id}>
-                      <ReviewAuthor>{review.authorName}</ReviewAuthor>
-                      <ReviewContent>{review.content}</ReviewContent>
-                    </ReviewItem>
-                  ))}
-                </ReviewList>
+              {reviewLoading ? (
+                <LoadingText>리뷰를 불러오는 중...</LoadingText>
               ) : (
-                <EmptyReview>아직 후기가 없습니다.</EmptyReview>
+                <>
+                  {reviewData?.reviews && reviewData.reviews.length > 0 ? (
+                    <ReviewList>
+                      {reviewData.reviews.map((review: any) => (
+                        <ReviewItem key={review.id}>
+                          <ReviewAuthor>{review.authorName}</ReviewAuthor>
+                          <ReviewContent>{review.content}</ReviewContent>
+                        </ReviewItem>
+                      ))}
+                    </ReviewList>
+                  ) : (
+                    <EmptyReview>아직 후기가 없습니다.</EmptyReview>
+                  )}
+                </>
               )}
             </TabContent>
           )}
 
           {activeTab === '상세정보' && (
             <TabContent>
-              {productDetail?.announcements &&
-              productDetail.announcements.length > 0 ? (
-                <CleanDetailSection>
-                  {productDetail.announcements
-                    .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
-                    .map((item: any, index: number) => (
-                      <DetailSection key={index}>
-                        <DetailSectionTitle>{item.name}</DetailSectionTitle>
-                        <DetailSectionContent>
-                          {item.value}
-                        </DetailSectionContent>
-                      </DetailSection>
-                    ))}
-                </CleanDetailSection>
+              {detailLoading ? (
+                <LoadingText>상세 정보를 불러오는 중...</LoadingText>
               ) : (
-                <LoadingText>상세 정보가 없습니다.</LoadingText>
+                <>
+                  {productDetail?.announcements &&
+                  productDetail.announcements.length > 0 ? (
+                    <CleanDetailSection>
+                      {productDetail.announcements
+                        .sort(
+                          (a: any, b: any) => a.displayOrder - b.displayOrder
+                        )
+                        .map((item: any, index: number) => (
+                          <DetailSection key={index}>
+                            <DetailSectionTitle>{item.name}</DetailSectionTitle>
+                            <DetailSectionContent>
+                              {item.value}
+                            </DetailSectionContent>
+                          </DetailSection>
+                        ))}
+                    </CleanDetailSection>
+                  ) : (
+                    <LoadingText>상세 정보가 없습니다.</LoadingText>
+                  )}
+                </>
               )}
             </TabContent>
           )}
         </ProductInfoSection>
 
         <BottomSection>
-          <LikeButton onClick={handleWishClick} disabled={isPending}>
+          <LikeButton
+            onClick={handleWishClick}
+            disabled={wishLoading || toggleWishMutation.isPending}
+          >
             <Heart
               size={20}
               fill={wishData?.isWished ? '#ff4757' : 'none'}
