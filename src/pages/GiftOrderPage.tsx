@@ -15,6 +15,7 @@ import { orderSchema } from '@/schemas/giftOrderSchemas';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProductQuery, useCreateOrderMutation } from '@/hooks/queries';
+import { Spinner } from '@/components/shared/ui/Spinner';
 
 type OrderForm = z.infer<typeof orderSchema>;
 
@@ -25,8 +26,12 @@ export default function GiftOrderPage() {
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
-  const { data: product } = useProductQuery(Number(productId));
-  const { mutateAsync, isPending } = useCreateOrderMutation();
+  const {
+    data: product,
+    error,
+    isLoading: loading,
+  } = useProductQuery(Number(productId));
+  const createOrderMutation = useCreateOrderMutation();
 
   const {
     control,
