@@ -5,6 +5,7 @@ import type {
   ProductReview,
   ProductWish,
 } from '@/types';
+import { PRODUCT_API } from '@/constants/endpoints';
 
 export const productsApi = {
   getRankingProducts: (
@@ -12,29 +13,27 @@ export const productsApi = {
     rankType: string
   ): Promise<Product[]> => {
     const params = new URLSearchParams({ targetType, rankType });
-    return apiClient.get<Product[]>(`/api/products/ranking?${params}`);
+    return apiClient.get<Product[]>(`${PRODUCT_API.RANKING}?${params}`);
   },
 
   getProduct: (productId: string | number): Promise<Product> => {
-    return apiClient.get<Product>(`/api/products/${productId}`);
+    return apiClient.get<Product>(PRODUCT_API.DETAIL(productId));
   },
   getProductDetail: (productId: string | number): Promise<ProductDetail> => {
-    return apiClient.get<ProductDetail>(`/api/products/${productId}/detail`);
+    return apiClient.get<ProductDetail>(PRODUCT_API.PRODUCT_DETAIL(productId));
   },
   getProductReviews: (productId: string | number): Promise<ProductReview> => {
-    return apiClient.get<ProductReview>(
-      `/api/products/${productId}/highlight-review`
-    );
+    return apiClient.get<ProductReview>(PRODUCT_API.PRODUCT_REVIEWS(productId));
   },
   getProductWish: (productId: string | number): Promise<ProductWish> => {
-    return apiClient.get<ProductWish>(`/api/products/${productId}/wish`);
+    return apiClient.get<ProductWish>(PRODUCT_API.PRODUCT_WISH(productId));
   },
 
   addToWishlist: (
     productId: string | number
   ): Promise<{ success: boolean }> => {
     return apiClient.post<{ success: boolean }>(
-      `/api/products/${productId}/wish`,
+      PRODUCT_API.PRODUCT_WISH(productId),
       {}
     );
   },
@@ -43,7 +42,7 @@ export const productsApi = {
     productId: string | number
   ): Promise<{ success: boolean }> => {
     return apiClient.delete<{ success: boolean }>(
-      `/api/products/${productId}/wish`
+      PRODUCT_API.PRODUCT_WISH(productId)
     );
   },
 };

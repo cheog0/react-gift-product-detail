@@ -5,18 +5,19 @@ import type {
   Product,
   ThemeProductsResponse,
 } from '@/types';
+import { THEME_API } from '@/constants/endpoints';
 
 export const themesApi = {
   getThemes: (): Promise<GiftTheme[]> => {
-    return apiClient.get<GiftTheme[]>('/api/themes');
+    return apiClient.get<GiftTheme[]>(THEME_API.THEMES);
   },
 
   getThemeInfo: (themeId: string | number): Promise<ThemeInfo> => {
-    return apiClient.get<ThemeInfo>(`/api/themes/${themeId}/info`);
+    return apiClient.get<ThemeInfo>(THEME_API.THEME_INFO(themeId));
   },
 
   getThemeProducts: (themeId: string | number): Promise<Product[]> => {
-    return apiClient.get<Product[]>(`/api/themes/${themeId}/products`);
+    return apiClient.get<Product[]>(THEME_API.THEME_PRODUCTS(themeId));
   },
 
   getThemeProductsWithPagination: (
@@ -28,7 +29,7 @@ export const themesApi = {
       limit: String(params.limit),
     });
     return apiClient.get<ThemeProductsResponse>(
-      `/api/themes/${themeId}/products?${searchParams}`
+      `${THEME_API.THEME_PRODUCTS(themeId)}?${searchParams}`
     );
   },
 };
