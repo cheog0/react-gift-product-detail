@@ -26,8 +26,7 @@ export default function ProductDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>('상품설명');
 
-  const { data: product, isLoading: productLoading } =
-    useProductQuery(numericProductId);
+  const { data: product } = useProductQuery(numericProductId);
   const { data: productDetail } = useProductDetailQuery(numericProductId);
   const { data: reviewData } = useProductReviewsQuery(numericProductId);
   const { data: wishData } = useProductWishQuery(numericProductId);
@@ -63,10 +62,6 @@ export default function ProductDetailPage() {
 
   if (!numericProductId) {
     throw new Error('상품 ID가 유효하지 않습니다.');
-  }
-
-  if (productLoading) {
-    return null;
   }
 
   if (!product) {

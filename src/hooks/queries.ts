@@ -56,30 +56,18 @@ export const queries = {
 } as const;
 
 export function useThemesQuery() {
-  const query = useQuery({
+  return useQuery({
     queryKey: queries.themes.key,
     queryFn: queries.themes.fn,
   });
-
-  if (query.error && !query.isLoading) {
-    throw query.error;
-  }
-
-  return query;
 }
 
 export function useThemeInfoQuery(themeId: string | number) {
-  const query = useQuery({
+  return useQuery({
     queryKey: queries.themeInfo.key(themeId),
     queryFn: () => queries.themeInfo.fn(themeId),
     enabled: !!themeId,
   });
-
-  if (query.error && !query.isLoading) {
-    throw query.error;
-  }
-
-  return query;
 }
 
 export function useThemeProductsQuery(themeId: string | number) {
@@ -91,31 +79,19 @@ export function useThemeProductsQuery(themeId: string | number) {
 }
 
 export function useRankingProductsQuery(targetType: string, rankType: string) {
-  const query = useQuery({
+  return useQuery({
     queryKey: queries.rankingProducts.key(targetType, rankType),
     queryFn: () => queries.rankingProducts.fn(targetType, rankType),
     enabled: !!targetType && !!rankType,
   });
-
-  if (query.error && !query.isLoading) {
-    throw query.error;
-  }
-
-  return query;
 }
 
 export function useProductQuery(productId: string | number) {
-  const query = useQuery({
+  return useQuery({
     queryKey: queries.product.key(productId),
     queryFn: () => queries.product.fn(productId),
     enabled: !!productId,
   });
-
-  if (query.error && !query.isLoading) {
-    throw query.error;
-  }
-
-  return query;
 }
 
 export function useProductDetailQuery(productId: string | number) {
@@ -144,7 +120,7 @@ export function useThemeProductsInfiniteQuery(
   themeId: string | number,
   limit: number = 20
 ) {
-  const query = useInfiniteQuery({
+  return useInfiniteQuery({
     queryKey: [...queries.themeProducts.key(themeId), 'infinite'],
     queryFn: ({ pageParam = 0 }) =>
       api.themesApi.getThemeProductsWithPagination(themeId, {
@@ -157,12 +133,6 @@ export function useThemeProductsInfiniteQuery(
     },
     initialPageParam: 0,
   });
-
-  if (query.error && !query.isLoading) {
-    throw query.error;
-  }
-
-  return query;
 }
 
 export function useLoginMutation() {

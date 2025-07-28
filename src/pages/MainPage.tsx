@@ -17,12 +17,8 @@ const DEFAULT_RANK = 'MANY_WISH';
 const THEME_PATH = '/themes/:themeId';
 
 function ThemesSection() {
-  const { data: themes, isLoading: themesLoading } = useThemesQuery();
+  const { data: themes } = useThemesQuery();
   const navigate = useNavigate();
-
-  if (themesLoading) {
-    return null;
-  }
 
   if (!themes || themes.length === 0) return null;
 
@@ -42,12 +38,7 @@ function RankingSection({
   rankType: string;
   onFilterChange: (nextTarget: string, nextRank: string) => void;
 }) {
-  const { data: products, isLoading: productsLoading } =
-    useRankingProductsQuery(targetType, rankType);
-
-  if (productsLoading) {
-    return null;
-  }
+  const { data: products } = useRankingProductsQuery(targetType, rankType);
 
   return (
     <RealTimeRanking

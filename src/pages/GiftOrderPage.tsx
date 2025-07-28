@@ -25,9 +25,7 @@ export default function GiftOrderPage() {
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
-  const { data: product, isLoading: productLoading } = useProductQuery(
-    Number(productId)
-  );
+  const { data: product } = useProductQuery(Number(productId));
   const createOrderMutation = useCreateOrderMutation();
 
   const {
@@ -121,10 +119,6 @@ export default function GiftOrderPage() {
     setValue('message', template.defaultTextMessage);
     setValue('selectedTemplate', template);
   };
-
-  if (productLoading) {
-    return null;
-  }
 
   if (!product) {
     throw new Error('상품 정보를 찾을 수 없습니다.');
