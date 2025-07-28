@@ -5,6 +5,7 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query';
 import type { GiftOrderForm, ProductWish } from '@/types';
+import type { LoginRequest, LoginResponse } from '@/types/api';
 import * as api from '@/api';
 
 export const queries = {
@@ -168,8 +169,13 @@ export function useLoginMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
-      const data = await api.authApi.login(credentials);
+    mutationFn: async (
+      credentials: LoginRequest
+    ): Promise<{
+      authToken: string;
+      user: { email: string; name: string };
+    }> => {
+      const data: LoginResponse = await api.authApi.login(credentials);
       const { email, name, authToken } = data;
       return {
         authToken,

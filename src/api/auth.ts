@@ -1,11 +1,8 @@
 import { apiClient } from '@/lib/apiClient';
+import type { LoginRequest, LoginResponse } from '@/types/api';
 
 export const authApi = {
-  login: (credentials: { email: string; password: string }) => {
-    return apiClient.post<{
-      email: string;
-      name: string;
-      authToken: string;
-    }>('/api/login', credentials);
+  login: (credentials: LoginRequest): Promise<LoginResponse> => {
+    return apiClient.post<LoginResponse>('/api/login', credentials);
   },
 };
