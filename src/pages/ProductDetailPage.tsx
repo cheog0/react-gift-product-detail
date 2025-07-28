@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
   const { data: reviewData } = useProductReviewsQuery(numericProductId);
   const { data: wishData } = useProductWishQuery(numericProductId);
 
-  const toggleWishMutation = useToggleWishMutation();
+  const { mutate, isPending } = useToggleWishMutation();
 
   const handleBackClick = () => {
     navigate(-1);
@@ -44,8 +44,10 @@ export default function ProductDetailPage() {
   };
 
   const handleWishClick = () => {
+    if (isPending) return;
+
     if (wishData && product) {
-      toggleWishMutation.mutate({
+      mutate({
         productId: product.id,
         isWished: wishData.isWished,
       });
@@ -65,7 +67,16 @@ export default function ProductDetailPage() {
   }
 
   if (!product) {
-    throw new Error('상품 정보를 찾을 수 없습니다.');
+    return (
+      <AppContainer>
+        <MobileViewport>
+          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            상품 정보를 찾을 수 없습니다.
+          </div>
+        </MobileViewport>
+      </AppContainer>
+    );
   }
 
   return (
@@ -74,7 +85,7 @@ export default function ProductDetailPage() {
         <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
 
         <ProductImageContainer>
-          <ProductImage src={product?.imageURL} alt={product.name} />
+          <ProductImage src={product.imageURL} alt={product.name} />
         </ProductImageContainer>
 
         <ProductInfoSection>
@@ -169,10 +180,7 @@ export default function ProductDetailPage() {
         </ProductInfoSection>
 
         <BottomSection>
-          <LikeButton
-            onClick={handleWishClick}
-            disabled={toggleWishMutation.isPending}
-          >
+          <LikeButton onClick={handleWishClick} disabled={isPending}>
             <Heart
               size={20}
               fill={wishData?.isWished ? '#ff4757' : 'none'}

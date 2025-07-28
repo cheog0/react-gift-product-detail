@@ -26,7 +26,7 @@ export default function GiftOrderPage() {
   const { user, logout } = useAuth();
 
   const { data: product } = useProductQuery(Number(productId));
-  const createOrderMutation = useCreateOrderMutation();
+  const { mutateAsync, isPending } = useCreateOrderMutation();
 
   const {
     control,
@@ -56,6 +56,7 @@ export default function GiftOrderPage() {
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
 
   const onSubmit = async (data: OrderForm) => {
+    // 이미 진행 중이면 실행하지 않음
     if (isPending) return;
 
     if (!user) {
@@ -121,7 +122,16 @@ export default function GiftOrderPage() {
   };
 
   if (!product) {
-    throw new Error('상품 정보를 찾을 수 없습니다.');
+    return (
+      <AppContainer>
+        <MobileViewport>
+          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            상품 정보를 찾을 수 없습니다.
+          </div>
+        </MobileViewport>
+      </AppContainer>
+    );
   }
 
   const openModal = () => {
