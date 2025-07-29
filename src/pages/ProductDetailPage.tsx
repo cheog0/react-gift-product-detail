@@ -71,9 +71,6 @@ export default function ProductDetailPage() {
       <AppContainer>
         <MobileViewport>
           <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            상품 정보를 찾을 수 없습니다.
-          </div>
         </MobileViewport>
       </AppContainer>
     );
