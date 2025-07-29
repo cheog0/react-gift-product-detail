@@ -5,7 +5,11 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query';
 import type { GiftOrderForm, ProductWish } from '@/types';
-import type { LoginRequest, LoginResponse } from '@/types/api';
+import type {
+  LoginRequest,
+  LoginResponse,
+  ThemeProductsResponse,
+} from '@/types/api';
 import * as api from '@/api';
 
 export const queries = {
@@ -127,7 +131,10 @@ export function useThemeProductsInfiniteQuery(
         cursor: pageParam,
         limit,
       }),
-    getNextPageParam: (lastPage: any, allPages) => {
+    getNextPageParam: (
+      lastPage: ThemeProductsResponse,
+      allPages: ThemeProductsResponse[]
+    ) => {
       const currentCursor = allPages.length * limit;
       return lastPage.hasMoreList ? currentCursor : undefined;
     },
@@ -220,10 +227,6 @@ export function useToggleWishMutation() {
         );
       }
     },
-    onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queries.productWish.key(variables.productId),
-      });
-    },
+    onSettled: () => {},
   });
 }
