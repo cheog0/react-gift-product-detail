@@ -13,6 +13,7 @@ import type {
 import * as api from '@/api';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import { useErrorStore } from '@/stores/errorStore';
 
 export const queries = {
   themes: {
@@ -201,6 +202,7 @@ export function useLoginMutation() {
 export function useCreateOrderMutation() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const setError = useErrorStore(state => state.setError);
 
   return useMutation({
     mutationFn: (orderData: GiftOrderForm) =>
@@ -233,10 +235,8 @@ export function useCreateOrderMutation() {
       if (status === 400) {
         toast.error('받는 사람이 없습니다');
       } else if (status === 401) {
-        toast.error('로그인이 필요합니다.');
-
+        setError('로그인이 필요합니다.');
         sessionStorage.removeItem('userInfo');
-
         const currentPath = encodeURIComponent(window.location.pathname);
         navigate(`/login?redirect=${currentPath}`);
       } else {
