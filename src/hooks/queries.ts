@@ -1,5 +1,5 @@
 import {
-  useQuery,
+  useSuspenseQuery,
   useMutation,
   useQueryClient,
   useInfiniteQuery,
@@ -11,6 +11,8 @@ import type {
   ThemeProductsResponse,
 } from '@/types/api';
 import * as api from '@/api';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 export const queries = {
   themes: {
@@ -59,64 +61,91 @@ export const queries = {
   },
 } as const;
 
-export function useThemesQuery() {
-  return useQuery({
+export function useSuspenseThemesQuery() {
+  return useSuspenseQuery({
     queryKey: queries.themes.key,
     queryFn: queries.themes.fn,
   });
 }
 
-export function useThemeInfoQuery(themeId: string | number) {
-  return useQuery({
+export function useSuspenseThemeInfoQuery(themeId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.themeInfo.key(themeId),
     queryFn: () => queries.themeInfo.fn(themeId),
-    enabled: !!themeId,
   });
 }
 
-export function useThemeProductsQuery(themeId: string | number) {
-  return useQuery({
+export function useSuspenseThemeProductsQuery(themeId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.themeProducts.key(themeId),
     queryFn: () => queries.themeProducts.fn(themeId),
-    enabled: !!themeId,
   });
 }
 
-export function useRankingProductsQuery(targetType: string, rankType: string) {
-  return useQuery({
+export function useSuspenseRankingProductsQuery(
+  targetType: string,
+  rankType: string
+) {
+  return useSuspenseQuery({
     queryKey: queries.rankingProducts.key(targetType, rankType),
     queryFn: () => queries.rankingProducts.fn(targetType, rankType),
-    enabled: !!targetType && !!rankType,
   });
 }
 
-export function useProductQuery(productId: string | number) {
-  return useQuery({
+export function useSuspenseProductQuery(productId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.product.key(productId),
-    queryFn: () => queries.product.fn(productId),
-    enabled: !!productId,
+    queryFn: async () => {
+      const product = await queries.product.fn(productId);
+      if (!product) {
+        throw new Error('존재하지 않는 상품입니다');
+      }
+      return product;
+    },
   });
 }
 
-export function useProductDetailQuery(productId: string | number) {
-  return useQuery({
+export function useSuspenseProductDetailQuery(productId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.productDetail.key(productId),
     queryFn: () => queries.productDetail.fn(productId),
-    enabled: !!productId,
   });
 }
-export function useProductReviewsQuery(productId: string | number) {
-  return useQuery({
+export function useSuspenseProductReviewsQuery(productId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.productReviews.key(productId),
     queryFn: () => queries.productReviews.fn(productId),
-    enabled: !!productId,
   });
 }
-export function useProductWishQuery(productId: string | number) {
-  return useQuery({
+export function useSuspenseProductWishQuery(productId: string | number) {
+  return useSuspenseQuery({
     queryKey: queries.productWish.key(productId),
     queryFn: () => queries.productWish.fn(productId),
-    enabled: !!productId,
+  });
+}
+
+export function useProductPageDataQuery(productId: string | number) {
+  return useSuspenseQuery({
+    queryKey: ['productPage', productId],
+    queryFn: async () => {
+      const [product, productDetail, reviewData, wishData] = await Promise.all([
+        queries.product.fn(productId),
+        queries.productDetail.fn(productId),
+        queries.productReviews.fn(productId),
+        queries.productWish.fn(productId),
+      ]);
+
+      if (!product) {
+        throw new Error('존재하지 않는 상품입니다');
+      }
+
+      return {
+        product,
+        productDetail,
+        reviewData,
+        wishData,
+      };
+    },
   });
 }
 
@@ -171,14 +200,49 @@ export function useLoginMutation() {
 
 export function useCreateOrderMutation() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (orderData: GiftOrderForm) =>
       api.ordersApi.createOrder(orderData),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queries.products.key });
+
+      const totalQuantity = variables.receivers.reduce(
+        (sum, r) => sum + r.quantity,
+        0
+      );
+
+      alert(
+        '주문이 완료되었습니다.' +
+          '\n상품명: ' +
+          variables.productId +
+          '\n구매 수량: ' +
+          totalQuantity +
+          '\n발신자 이름: ' +
+          variables.ordererName +
+          '\n메시지: ' +
+          variables.message
+      );
+
+      navigate('/');
     },
-    onSettled: () => {},
+    onError: (error: any) => {
+      const status = error?.status;
+
+      if (status === 400) {
+        toast.error('받는 사람이 없습니다');
+      } else if (status === 401) {
+        toast.error('로그인이 필요합니다.');
+
+        sessionStorage.removeItem('userInfo');
+
+        const currentPath = encodeURIComponent(window.location.pathname);
+        navigate(`/login?redirect=${currentPath}`);
+      } else {
+        toast.error(error.message || '주문에 실패했습니다.');
+      }
+    },
   });
 }
 
@@ -199,9 +263,18 @@ export function useToggleWishMutation() {
       await queryClient.cancelQueries({
         queryKey: queries.productWish.key(productId),
       });
+      await queryClient.cancelQueries({
+        queryKey: ['productPage', productId],
+      });
+
       const previousWish = queryClient.getQueryData(
         queries.productWish.key(productId)
       ) as ProductWish | undefined;
+
+      const previousProductPage = queryClient.getQueryData([
+        'productPage',
+        productId,
+      ]);
 
       queryClient.setQueryData(
         queries.productWish.key(productId),
@@ -216,7 +289,21 @@ export function useToggleWishMutation() {
         }
       );
 
-      return { previousWish };
+      queryClient.setQueryData(['productPage', productId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          wishData: {
+            ...old.wishData,
+            isWished: !isWished,
+            wishCount: isWished
+              ? (old.wishData?.wishCount || 0) - 1
+              : (old.wishData?.wishCount || 0) + 1,
+          },
+        };
+      });
+
+      return { previousWish, previousProductPage };
     },
     onError: (_err, mutationVariables, context) => {
       if (context?.previousWish) {
@@ -224,6 +311,13 @@ export function useToggleWishMutation() {
         queryClient.setQueryData(
           queries.productWish.key(productId),
           context.previousWish
+        );
+      }
+      if (context?.previousProductPage) {
+        const productId = mutationVariables.productId;
+        queryClient.setQueryData(
+          ['productPage', productId],
+          context.previousProductPage
         );
       }
     },
