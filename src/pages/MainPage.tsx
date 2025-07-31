@@ -1,55 +1,17 @@
-import { useSearchParams, useNavigate, generatePath } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Spinner } from '@/components/shared/ui';
 import { NavigationHeader } from '@/components/shared/layout';
 import {
   FriendSelector,
-  GiftThemeGrid,
   PromotionBanner,
-  RealTimeRanking,
-  ProductCard,
 } from '@/components/features/gift-order';
+import { ThemesSection, RankingSection } from '@/components/features/main';
 import styled from '@emotion/styled';
 import { theme } from '@/styles/theme';
-import { useThemesQuery, useRankingProductsQuery } from '@/hooks/queries';
-import type { GiftTheme } from '@/types';
 
 const DEFAULT_TARGET = 'ALL';
 const DEFAULT_RANK = 'MANY_WISH';
-const THEME_PATH = '/themes/:themeId';
-
-function ThemesSection() {
-  const { data: themes } = useThemesQuery();
-  const navigate = useNavigate();
-
-  if (!themes || themes.length === 0) return null;
-
-  const handleThemeClick = (theme: GiftTheme) => {
-    navigate(generatePath(THEME_PATH, { themeId: String(theme.themeId) }));
-  };
-
-  return <GiftThemeGrid themes={themes} onThemeClick={handleThemeClick} />;
-}
-
-function RankingSection({
-  targetType,
-  rankType,
-  onFilterChange,
-}: {
-  targetType: string;
-  rankType: string;
-  onFilterChange: (nextTarget: string, nextRank: string) => void;
-}) {
-  const { data: products } = useRankingProductsQuery(targetType, rankType);
-
-  return (
-    <RealTimeRanking
-      products={products || []}
-      ProductCardComponent={ProductCard}
-      targetType={targetType}
-      rankType={rankType}
-      onFilterChange={onFilterChange}
-    />
-  );
-}
 
 export default function MainPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,18 +30,20 @@ export default function MainPage() {
   return (
     <AppContainer>
       <MobileViewport>
-        <NavigationHeader title="선물하기" />
-        <FriendSelector onAddFriend={handleAddFriend} />
-        <ThemesSection />
-        <PromotionBanner
-          subtitle="카카오테크 캠퍼스 3기 여러분"
-          title="프론트엔드 2단계 과제 화이팅!"
-        />
-        <RankingSection
-          targetType={targetType}
-          rankType={rankType}
-          onFilterChange={handleRankingFilterChange}
-        />
+        <Suspense fallback={<Spinner />}>
+          <NavigationHeader title="선물하기" />
+          <FriendSelector onAddFriend={handleAddFriend} />
+          <ThemesSection />
+          <PromotionBanner
+            subtitle="카카오테크 캠퍼스 3기 여러분"
+            title="프론트엔드 2단계 과제 화이팅!"
+          />
+          <RankingSection
+            targetType={targetType}
+            rankType={rankType}
+            onFilterChange={handleRankingFilterChange}
+          />
+        </Suspense>
       </MobileViewport>
     </AppContainer>
   );
