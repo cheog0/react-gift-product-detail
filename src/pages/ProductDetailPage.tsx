@@ -1,14 +1,13 @@
 import { useState } from 'react';
+import { Suspense } from 'react';
+import { Spinner } from '@/components/shared/ui';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { Heart } from 'lucide-react';
 import { theme } from '@/styles/theme';
 import { NavigationHeader } from '@/components/shared/layout';
 import {
-  useProductQuery,
-  useProductDetailQuery,
-  useProductReviewsQuery,
-  useProductWishQuery,
+  useProductPageDataQuery,
   useToggleWishMutation,
 } from '@/hooks/queries';
 
@@ -26,10 +25,8 @@ export default function ProductDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>('상품설명');
 
-  const { data: product } = useProductQuery(numericProductId);
-  const { data: productDetail } = useProductDetailQuery(numericProductId);
-  const { data: reviewData } = useProductReviewsQuery(numericProductId);
-  const { data: wishData } = useProductWishQuery(numericProductId);
+  const { data: productPageData } = useProductPageDataQuery(numericProductId);
+  const { product, productDetail, reviewData, wishData } = productPageData;
 
   const { mutate, isPending } = useToggleWishMutation();
 
@@ -62,132 +59,130 @@ export default function ProductDetailPage() {
     return `${price.sellingPrice.toLocaleString()}원`;
   };
 
-  if (!numericProductId) {
-    throw new Error('상품 ID가 유효하지 않습니다.');
-  }
-
-  if (!product) {
-    return (
-      <AppContainer>
-        <MobileViewport>
-          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-        </MobileViewport>
-      </AppContainer>
-    );
-  }
-
   return (
     <AppContainer>
       <MobileViewport>
         <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
+        <Suspense fallback={<Spinner />}>
+          {numericProductId ? (
+            <>
+              <ProductImageContainer>
+                <ProductImage src={product.imageURL} alt={product.name} />
+              </ProductImageContainer>
 
-        <ProductImageContainer>
-          <ProductImage src={product.imageURL} alt={product.name} />
-        </ProductImageContainer>
+              <ProductInfoSection>
+                <ProductTitle>{product.name}</ProductTitle>
+                <ProductPrice>{formatPrice(product.price)}</ProductPrice>
 
-        <ProductInfoSection>
-          <ProductTitle>{product.name}</ProductTitle>
-          <ProductPrice>{formatPrice(product.price)}</ProductPrice>
+                <BrandContainer>
+                  <BrandLogo>
+                    {product?.brandInfo?.imageURL ? (
+                      <BrandImage
+                        src={product.brandInfo.imageURL}
+                        alt={product.brandInfo.name}
+                      />
+                    ) : (
+                      <BrandIcon />
+                    )}
+                  </BrandLogo>
+                  <BrandName>
+                    {product?.brandInfo?.name || '브랜드 정보 없음'}
+                  </BrandName>
+                </BrandContainer>
 
-          <BrandContainer>
-            <BrandLogo>
-              {product?.brandInfo?.imageURL ? (
-                <BrandImage
-                  src={product.brandInfo.imageURL}
-                  alt={product.brandInfo.name}
-                />
-              ) : (
-                <BrandIcon />
-              )}
-            </BrandLogo>
-            <BrandName>
-              {product?.brandInfo?.name || '브랜드 정보 없음'}
-            </BrandName>
-          </BrandContainer>
+                <ActionButtonsContainer>
+                  <ActionButton
+                    isActive={activeTab === '상품설명'}
+                    onClick={() => setActiveTab('상품설명')}
+                  >
+                    상품설명
+                  </ActionButton>
+                  <ActionButton
+                    isActive={activeTab === '선물후기'}
+                    onClick={() => setActiveTab('선물후기')}
+                  >
+                    선물후기
+                  </ActionButton>
+                  <ActionButton
+                    isActive={activeTab === '상세정보'}
+                    onClick={() => setActiveTab('상세정보')}
+                  >
+                    상세정보
+                  </ActionButton>
+                </ActionButtonsContainer>
 
-          <ActionButtonsContainer>
-            <ActionButton
-              isActive={activeTab === '상품설명'}
-              onClick={() => setActiveTab('상품설명')}
-            >
-              상품설명
-            </ActionButton>
-            <ActionButton
-              isActive={activeTab === '선물후기'}
-              onClick={() => setActiveTab('선물후기')}
-            >
-              선물후기
-            </ActionButton>
-            <ActionButton
-              isActive={activeTab === '상세정보'}
-              onClick={() => setActiveTab('상세정보')}
-            >
-              상세정보
-            </ActionButton>
-          </ActionButtonsContainer>
+                {activeTab === '상품설명' && (
+                  <TabContent>
+                    <ProductDescription
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          productDetail?.description || '상품 설명이 없습니다.',
+                      }}
+                    />
+                  </TabContent>
+                )}
 
-          {activeTab === '상품설명' && (
-            <TabContent>
-              <ProductDescription
-                dangerouslySetInnerHTML={{
-                  __html: productDetail?.description || '상품 설명이 없습니다.',
-                }}
-              />
-            </TabContent>
+                {activeTab === '선물후기' && (
+                  <TabContent>
+                    {reviewData?.reviews && reviewData.reviews.length > 0 ? (
+                      <ReviewList>
+                        {reviewData.reviews.map((review: any) => (
+                          <ReviewItem key={review.id}>
+                            <ReviewAuthor>{review.authorName}</ReviewAuthor>
+                            <ReviewContent>{review.content}</ReviewContent>
+                          </ReviewItem>
+                        ))}
+                      </ReviewList>
+                    ) : (
+                      <EmptyReview>아직 후기가 없습니다.</EmptyReview>
+                    )}
+                  </TabContent>
+                )}
+
+                {activeTab === '상세정보' && (
+                  <TabContent>
+                    {productDetail?.announcements &&
+                    productDetail.announcements.length > 0 ? (
+                      <CleanDetailSection>
+                        {productDetail.announcements
+                          .sort(
+                            (a: any, b: any) => a.displayOrder - b.displayOrder
+                          )
+                          .map((item: any, index: number) => (
+                            <DetailSection key={index}>
+                              <DetailSectionTitle>
+                                {item.name}
+                              </DetailSectionTitle>
+                              <DetailSectionContent>
+                                {item.value}
+                              </DetailSectionContent>
+                            </DetailSection>
+                          ))}
+                      </CleanDetailSection>
+                    ) : (
+                      <LoadingText>상세 정보가 없습니다.</LoadingText>
+                    )}
+                  </TabContent>
+                )}
+              </ProductInfoSection>
+
+              <BottomSection>
+                <LikeButton onClick={handleWishClick} disabled={isPending}>
+                  <Heart
+                    size={20}
+                    fill={wishData?.isWished ? '#ff4757' : 'none'}
+                    color={wishData?.isWished ? '#ff4757' : '#666'}
+                  />
+                  <LikeCount>{wishData?.wishCount || 0}</LikeCount>
+                </LikeButton>
+
+                <OrderButton onClick={handleOrderClick}>주문하기</OrderButton>
+              </BottomSection>
+            </>
+          ) : (
+            <div>상품 정보를 찾을 수 없습니다.</div>
           )}
-
-          {activeTab === '선물후기' && (
-            <TabContent>
-              {reviewData?.reviews && reviewData.reviews.length > 0 ? (
-                <ReviewList>
-                  {reviewData.reviews.map((review: any) => (
-                    <ReviewItem key={review.id}>
-                      <ReviewAuthor>{review.authorName}</ReviewAuthor>
-                      <ReviewContent>{review.content}</ReviewContent>
-                    </ReviewItem>
-                  ))}
-                </ReviewList>
-              ) : (
-                <EmptyReview>아직 후기가 없습니다.</EmptyReview>
-              )}
-            </TabContent>
-          )}
-
-          {activeTab === '상세정보' && (
-            <TabContent>
-              {productDetail?.announcements &&
-              productDetail.announcements.length > 0 ? (
-                <CleanDetailSection>
-                  {productDetail.announcements
-                    .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
-                    .map((item: any, index: number) => (
-                      <DetailSection key={index}>
-                        <DetailSectionTitle>{item.name}</DetailSectionTitle>
-                        <DetailSectionContent>
-                          {item.value}
-                        </DetailSectionContent>
-                      </DetailSection>
-                    ))}
-                </CleanDetailSection>
-              ) : (
-                <LoadingText>상세 정보가 없습니다.</LoadingText>
-              )}
-            </TabContent>
-          )}
-        </ProductInfoSection>
-
-        <BottomSection>
-          <LikeButton onClick={handleWishClick} disabled={isPending}>
-            <Heart
-              size={20}
-              fill={wishData?.isWished ? '#ff4757' : 'none'}
-              color={wishData?.isWished ? '#ff4757' : '#666'}
-            />
-            <LikeCount>{wishData?.wishCount || 0}</LikeCount>
-          </LikeButton>
-
-          <OrderButton onClick={handleOrderClick}>주문하기</OrderButton>
-        </BottomSection>
+        </Suspense>
       </MobileViewport>
     </AppContainer>
   );
