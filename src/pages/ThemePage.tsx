@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Spinner } from '@/components/shared/ui';
 import styled from '@emotion/styled';
 import { theme } from '@/styles/theme';
 import { NavigationHeader } from '@/components/shared/layout';
@@ -23,11 +25,17 @@ export default function ThemePage() {
     <AppContainer>
       <MobileViewport>
         <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-        <ThemeInfoSection themeId={numericThemeId} />
-        <ThemeProductSection
-          themeId={numericThemeId}
-          onProductClick={handleProductClick}
-        />
+        <Suspense fallback={<Spinner />}>
+          {numericThemeId && (
+            <>
+              <ThemeInfoSection themeId={numericThemeId} />
+              <ThemeProductSection
+                themeId={numericThemeId}
+                onProductClick={handleProductClick}
+              />
+            </>
+          )}
+        </Suspense>
       </MobileViewport>
     </AppContainer>
   );
