@@ -1,17 +1,9 @@
-import { useThemeInfoQuery } from '@/hooks/queries';
+import { useSuspenseThemeInfoQuery } from '@/hooks/queries';
 import styled from '@emotion/styled';
 import { theme as appTheme } from '@/styles/theme';
 
 export function ThemeInfoSection({ themeId }: { themeId: number }) {
-  const { data: theme } = useThemeInfoQuery(themeId);
-
-  if (!theme) {
-    return (
-      <InfoContainer>
-        <InfoTitle>테마 정보를 찾을 수 없습니다.</InfoTitle>
-      </InfoContainer>
-    );
-  }
+  const { data: theme } = useSuspenseThemeInfoQuery(themeId);
 
   return (
     <InfoContainer style={{ background: theme.backgroundColor }}>
