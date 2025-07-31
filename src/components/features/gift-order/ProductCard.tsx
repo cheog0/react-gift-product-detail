@@ -23,7 +23,7 @@ export function ProductCard({
       <ProductImage src={product.imageURL} alt={product.name} />
       <ProductInfo>
         <BrandName>{product.brandInfo.name}</BrandName>
-        <StrongBrandName>{product.brandInfo.name}</StrongBrandName>
+        <ProductName>{product.name}</ProductName>
         <Price>{formatPrice(product.price.sellingPrice)}</Price>
       </ProductInfo>
     </Card>
@@ -78,8 +78,12 @@ const BrandName = styled.div`
   margin-bottom: ${theme.spacing.spacing1};
 `;
 
-const StrongBrandName = styled(BrandName)`
-  color: ${theme.colors.gray1000};
+const ProductName = styled.div`
+  font-size: ${theme.typography.body1Regular.fontSize};
+  color: ${theme.colors.textDefault};
+  line-height: 1.3;
+  margin-bottom: ${theme.spacing.spacing1};
+  font-weight: ${theme.typography.body1Regular.fontWeight};
 `;
 
 const Price = styled.div`
