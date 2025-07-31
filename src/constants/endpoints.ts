@@ -23,3 +23,7 @@ export const THEME_API = {
 export const ORDER_API = {
   CREATE_ORDER: '/api/order',
 };
+
+export const Path = {
+  THEME: '/themes/:themeId',
+};
