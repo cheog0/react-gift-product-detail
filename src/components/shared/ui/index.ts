@@ -4,3 +4,4 @@ export { NotFoundLogo } from './NotFoundLogo';
 export { Spinner } from './Spinner';
 export { ErrorBoundary } from './ErrorBoundary';
 export { SuspenseFallback } from './SuspenseFallback';
+export { default as Typography } from './Typography';
