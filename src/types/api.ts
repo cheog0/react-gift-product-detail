@@ -1,7 +1,7 @@
 import type { Product } from './product';
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  list: T[];
   hasMoreList: boolean;
   nextCursor?: number;
 }
