@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Suspense } from 'react';
+import { Spinner } from '@/components/shared/ui';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { theme } from '@/styles/theme';
 import { NavigationHeader } from '@/components/shared/layout';
@@ -14,19 +16,21 @@ import { RecipientTable } from '@/components/features/gift-order';
 import { orderSchema } from '@/schemas/giftOrderSchemas';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProductQuery, useCreateOrderMutation } from '@/hooks/queries';
+import {
+  useSuspenseProductQuery,
+  useCreateOrderMutation,
+} from '@/hooks/queries';
 
 type OrderForm = z.infer<typeof orderSchema>;
 
 export default function GiftOrderPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { productId } = useParams();
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
-  const { data: product } = useProductQuery(Number(productId));
-  const { mutateAsync, isPending } = useCreateOrderMutation();
+  const { data: product } = useSuspenseProductQuery(Number(productId));
+  const { mutate, isPending } = useCreateOrderMutation();
 
   const {
     control,
@@ -55,9 +59,7 @@ export default function GiftOrderPage() {
 
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
 
-  const onSubmit = async (data: OrderForm) => {
-    if (isPending) return;
-
+  const onSubmit = (data: OrderForm) => {
     if (!user) {
       logout();
       toast.error('로그인이 필요합니다.');
@@ -65,50 +67,17 @@ export default function GiftOrderPage() {
       return;
     }
 
-    try {
-      await mutateAsync({
-        productId: product!.id,
-        ordererName: data.senderName,
-        message: data.message,
-        messageCardId: String(data.selectedTemplate.id),
-        receivers: data.recipients.map(r => ({
-          name: r.name,
-          phoneNumber: r.phone,
-          quantity: r.quantity,
-        })),
-      });
-
-      const totalQuantity = getValues('recipients').reduce(
-        (sum, r) => sum + r.quantity,
-        0
-      );
-
-      alert(
-        '주문이 완료되었습니다.' +
-          '\n상품명: ' +
-          product!.name +
-          '\n구매 수량: ' +
-          totalQuantity +
-          '\n발신자 이름: ' +
-          getValues('senderName') +
-          '\n메시지: ' +
-          getValues('message')
-      );
-      navigate('/');
-    } catch (error: any) {
-      const status = error?.status;
-
-      if (status === 400) {
-        toast.error('받는 사람이 없습니다');
-      } else if (status === 401) {
-        logout();
-        const currentPath = encodeURIComponent(location.pathname);
-        sessionStorage.setItem('loginError', 'unauthorized');
-        navigate(`/login?redirect=${currentPath}`, { replace: true });
-      } else {
-        toast.error(error.message || '주문에 실패했습니다.');
-      }
-    }
+    mutate({
+      productId: product!.id,
+      ordererName: data.senderName,
+      message: data.message,
+      messageCardId: String(data.selectedTemplate.id),
+      receivers: data.recipients.map(r => ({
+        name: r.name,
+        phoneNumber: r.phone,
+        quantity: r.quantity,
+      })),
+    });
   };
 
   const handleBackClick = () => {
@@ -119,16 +88,6 @@ export default function GiftOrderPage() {
     setValue('message', template.defaultTextMessage);
     setValue('selectedTemplate', template);
   };
-
-  if (!product) {
-    return (
-      <AppContainer>
-        <MobileViewport>
-          <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
-        </MobileViewport>
-      </AppContainer>
-    );
-  }
 
   const openModal = () => {
     setIsRecipientModalOpen(true);
@@ -151,107 +110,114 @@ export default function GiftOrderPage() {
     <AppContainer>
       <MobileViewport>
         <NavigationHeader title="선물하기" onBackClick={handleBackClick} />
+        {productId ? (
+          <Suspense fallback={<Spinner />}>
+            <FormContainer>
+              <TemplateSelectorContainer>
+                <TemplateScroller>
+                  {messageCardTemplates.map(template => (
+                    <TemplateThumb
+                      key={template.id}
+                      isSelected={selectedTemplate.id === template.id}
+                      onClick={() => handleTemplateSelect(template)}
+                    >
+                      <img
+                        src={template.thumbUrl || '/placeholder.svg'}
+                        alt="메시지 카드"
+                      />
+                    </TemplateThumb>
+                  ))}
+                </TemplateScroller>
 
-        <FormContainer>
-          <TemplateSelectorContainer>
-            <TemplateScroller>
-              {messageCardTemplates.map(template => (
-                <TemplateThumb
-                  key={template.id}
-                  isSelected={selectedTemplate.id === template.id}
-                  onClick={() => handleTemplateSelect(template)}
-                >
+                <MessageCardPreview>
                   <img
-                    src={template.thumbUrl || '/placeholder.svg'}
-                    alt="메시지 카드"
+                    src={selectedTemplate.imageUrl || '/placeholder.svg'}
+                    alt="선택된 메시지 카드"
                   />
-                </TemplateThumb>
-              ))}
-            </TemplateScroller>
+                </MessageCardPreview>
+              </TemplateSelectorContainer>
+              <Separator />
 
-            <MessageCardPreview>
-              <img
-                src={selectedTemplate.imageUrl || '/placeholder.svg'}
-                alt="선택된 메시지 카드"
-              />
-            </MessageCardPreview>
-          </TemplateSelectorContainer>
-          <Separator />
+              <MessageSection>
+                <FormField error={errors.message?.message}>
+                  <TextArea
+                    {...register('message')}
+                    placeholder="축하해요"
+                    hasError={!!errors.message?.message}
+                  />
+                </FormField>
+              </MessageSection>
+              <Separator />
 
-          <MessageSection>
-            <FormField error={errors.message?.message}>
-              <TextArea
-                {...register('message')}
-                placeholder="축하해요"
-                hasError={!!errors.message?.message}
-              />
-            </FormField>
-          </MessageSection>
-          <Separator />
+              <FormSection>
+                <SectionTitle>보내는 사람</SectionTitle>
+                <FormField
+                  error={errors.senderName?.message}
+                  helpText="* 실제 선물 발송 시 발신자이름으로 반영되는 정보입니다."
+                >
+                  <Input
+                    type="text"
+                    {...register('senderName')}
+                    placeholder="이름을 입력하세요"
+                    hasError={!!errors.senderName?.message}
+                  />
+                </FormField>
+              </FormSection>
+              <Separator />
+              <FormSection>
+                <RecipientHeader>
+                  <SectionTitle>받는 사람</SectionTitle>
+                  <EditButton onClick={openModal}>추가</EditButton>
+                </RecipientHeader>
+                {fields.length === 0 ? (
+                  <EmptyRecipientContainer>
+                    <EmptyRecipientText>
+                      받는 사람이 없습니다.
+                    </EmptyRecipientText>
+                    <EmptyRecipientSubText>
+                      받는 사람을 추가해주세요.
+                    </EmptyRecipientSubText>
+                  </EmptyRecipientContainer>
+                ) : (
+                  <RecipientTable fields={fields} errors={errors} />
+                )}
+              </FormSection>
+              <Separator />
 
-          <FormSection>
-            <SectionTitle>보내는 사람</SectionTitle>
-            <FormField
-              error={errors.senderName?.message}
-              helpText="* 실제 선물 발송 시 발신자이름으로 반영되는 정보입니다."
-            >
-              <Input
-                type="text"
-                {...register('senderName')}
-                placeholder="이름을 입력하세요"
-                hasError={!!errors.senderName?.message}
-              />
-            </FormField>
-          </FormSection>
-          <Separator />
-          <FormSection>
-            <RecipientHeader>
-              <SectionTitle>받는 사람</SectionTitle>
-              <EditButton onClick={openModal}>추가</EditButton>
-            </RecipientHeader>
-            {fields.length === 0 ? (
-              <EmptyRecipientContainer>
-                <EmptyRecipientText>받는 사람이 없습니다.</EmptyRecipientText>
-                <EmptyRecipientSubText>
-                  받는 사람을 추가해주세요.
-                </EmptyRecipientSubText>
-              </EmptyRecipientContainer>
-            ) : (
-              <RecipientTable fields={fields} errors={errors} />
-            )}
-          </FormSection>
-          <Separator />
+              <ProductSection>
+                <SectionTitle>상품 정보</SectionTitle>
+                <ProductInfo>
+                  <ProductImage src={product.imageURL} alt={product.name} />
+                  <ProductDetails>
+                    <ProductName>{product.name}</ProductName>
+                    <ProductBrand>
+                      {product.brandInfo?.name ?? '브랜드 정보 없음'}
+                    </ProductBrand>
+                    <ProductPrice>
+                      상품가 {product.price.sellingPrice}원
+                    </ProductPrice>
+                  </ProductDetails>
+                </ProductInfo>
+              </ProductSection>
+            </FormContainer>
 
-          <ProductSection>
-            <SectionTitle>상품 정보</SectionTitle>
-            <ProductInfo>
-              <ProductImage src={product.imageURL} alt={product.name} />
-              <ProductDetails>
-                <ProductName>{product.name}</ProductName>
-                <ProductBrand>
-                  {product.brandInfo?.name ?? '브랜드 정보 없음'}
-                </ProductBrand>
-                <ProductPrice>
-                  상품가 {product.price.sellingPrice}원
-                </ProductPrice>
-              </ProductDetails>
-            </ProductInfo>
-          </ProductSection>
-        </FormContainer>
+            <RecipientModal
+              isOpen={isRecipientModalOpen}
+              onClose={() => setIsRecipientModalOpen(false)}
+              initialRecipients={getValues('recipients')}
+              onSave={handleModalSave}
+              modalBodyRef={modalBodyRef}
+            />
 
-        <RecipientModal
-          isOpen={isRecipientModalOpen}
-          onClose={() => setIsRecipientModalOpen(false)}
-          initialRecipients={getValues('recipients')}
-          onSave={handleModalSave}
-          modalBodyRef={modalBodyRef}
-        />
-
-        <OrderButton onClick={handleSubmit(onSubmit)} disabled={isPending}>
-          {isPending
-            ? '주문 처리 중...'
-            : `${product.price.sellingPrice * calculateTotalQuantity(getValues('recipients'))}원 주문하기`}
-        </OrderButton>
+            <OrderButton onClick={handleSubmit(onSubmit)} disabled={isPending}>
+              {isPending
+                ? '주문 처리 중...'
+                : `${product.price.sellingPrice * calculateTotalQuantity(getValues('recipients'))}원 주문하기`}
+            </OrderButton>
+          </Suspense>
+        ) : (
+          <div>상품 정보를 찾을 수 없습니다.</div>
+        )}
       </MobileViewport>
     </AppContainer>
   );
