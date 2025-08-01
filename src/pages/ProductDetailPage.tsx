@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Suspense } from 'react';
-import { Spinner } from '@/components/shared/ui';
+import { Spinner, SafeHtml } from '@/components/shared/ui';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { Heart } from 'lucide-react';
@@ -126,12 +126,12 @@ export default function ProductDetailPage() {
 
                 {activeTab === '상품설명' && (
                   <TabContent>
-                    <ProductDescription
-                      dangerouslySetInnerHTML={{
-                        __html:
-                          productDetail?.description || '상품 설명이 없습니다.',
-                      }}
-                    />
+                    <ProductDescription>
+                      <SafeHtml
+                        html={productDetail?.description || ''}
+                        className="product-description"
+                      />
+                    </ProductDescription>
                   </TabContent>
                 )}
 
@@ -336,14 +336,16 @@ const ProductDescription = styled.div`
   line-height: 1.6;
   margin: 0 0 ${theme.spacing.spacing4} 0;
 
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin: ${theme.spacing.spacing2} 0;
-  }
-  p {
-    margin: ${theme.spacing.spacing2} 0;
+  .product-description {
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: ${theme.spacing.spacing2} 0;
+    }
+    p {
+      margin: ${theme.spacing.spacing2} 0;
+    }
   }
 `;
 

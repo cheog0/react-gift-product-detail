@@ -6,3 +6,4 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { GlobalErrorFallback } from './GlobalErrorFallback';
 export { SuspenseFallback } from './SuspenseFallback';
 export { default as Typography } from './Typography';
+export { SafeHtml } from './SafeHtml';
