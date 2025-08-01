@@ -18,9 +18,8 @@ import type {
   ThemeProductsResponse,
 } from '@/types/api';
 import * as api from '@/api';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { useErrorStore } from '@/stores/errorStore';
+import { useGlobalErrorHandler } from './useGlobalErrorHandler';
 
 export const queries = {
   themes: {
@@ -213,7 +212,7 @@ export function useLoginMutation() {
 export function useCreateOrderMutation() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const setError = useErrorStore(state => state.setError);
+  const { handleError } = useGlobalErrorHandler();
 
   return useMutation({
     mutationFn: (orderData: GiftOrderForm) =>
@@ -241,24 +240,16 @@ export function useCreateOrderMutation() {
       navigate('/');
     },
     onError: (error: any) => {
-      const status = error?.status;
-
-      if (status === 400) {
-        toast.error('받는 사람이 없습니다');
-      } else if (status === 401) {
-        setError('로그인이 필요합니다.');
-        sessionStorage.removeItem('userInfo');
-        const currentPath = encodeURIComponent(window.location.pathname);
-        navigate(`/login?redirect=${currentPath}`);
-      } else {
-        toast.error(error.message || '주문에 실패했습니다.');
-      }
+      handleError(error, {
+        400: '받는 사람이 없습니다',
+      });
     },
   });
 }
 
 export function useToggleWishMutation() {
   const queryClient = useQueryClient();
+  const { handleError } = useGlobalErrorHandler();
 
   return useMutation({
     mutationFn: async ({
@@ -271,32 +262,14 @@ export function useToggleWishMutation() {
       return { success: true };
     },
     onMutate: async ({ productId, isWished }) => {
+      // productWish 쿼리만 cancel하고 getQueryData 하도록 간소화
       await queryClient.cancelQueries({
         queryKey: queries.productWish.key(productId),
-      });
-      await queryClient.cancelQueries({
-        queryKey: queries.product.key(productId),
-      });
-      await queryClient.cancelQueries({
-        queryKey: queries.productDetail.key(productId),
-      });
-      await queryClient.cancelQueries({
-        queryKey: queries.productReviews.key(productId),
       });
 
       const previousWish = queryClient.getQueryData(
         queries.productWish.key(productId)
       ) as ProductWish | undefined;
-
-      const previousProduct = queryClient.getQueryData(
-        queries.product.key(productId)
-      );
-      const previousProductDetail = queryClient.getQueryData(
-        queries.productDetail.key(productId)
-      );
-      const previousProductReviews = queryClient.getQueryData(
-        queries.productReviews.key(productId)
-      );
 
       queryClient.setQueryData(
         queries.productWish.key(productId),
@@ -311,18 +284,12 @@ export function useToggleWishMutation() {
         }
       );
 
-      // 개별 쿼리들을 업데이트하지 않고, wishData만 업데이트
-      // useProductPageDataQuery에서 각 쿼리를 개별적으로 관리하므로
-      // 여기서는 wishData 쿼리만 업데이트하면 됩니다
-
-      return {
-        previousWish,
-        previousProduct,
-        previousProductDetail,
-        previousProductReviews,
-      };
+      return { previousWish };
     },
-    onError: (_err, mutationVariables, context) => {
+    onError: (error, mutationVariables, context) => {
+      // 전역 에러 핸들러로 처리
+      handleError(error);
+
       if (context?.previousWish) {
         const productId = mutationVariables.productId;
         queryClient.setQueryData(
@@ -330,9 +297,12 @@ export function useToggleWishMutation() {
           context.previousWish
         );
       }
-      // 개별 쿼리들을 복원하는 대신, wishData만 복원
-      // 다른 쿼리들은 서버에서 다시 가져오도록 함
     },
-    onSettled: () => {},
+    onSettled: (_, __, variables) => {
+      // productWish 쿼리만 invalidateQueries 하여 서버와 상태 동기화
+      queryClient.invalidateQueries({
+        queryKey: queries.productWish.key(variables.productId),
+      });
+    },
   });
 }

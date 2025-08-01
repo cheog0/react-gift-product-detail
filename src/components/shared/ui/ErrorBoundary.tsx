@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode } from 'react';
-import NotFoundPage from '@/pages/NotFoundPage';
+import { GlobalErrorFallback } from './GlobalErrorFallback';
 
 interface Props {
   children: ReactNode;
@@ -24,6 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // 에러 로깅 역할만 수행
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.props.onError?.(error, errorInfo);
   }
@@ -34,12 +35,18 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   render() {
-    if (this.state.hasError) {
+    if (this.state.hasError && this.state.error) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      return <NotFoundPage onRetry={this.handleRetry} />;
+      // 직접 에러를 처리하는 대신, Fallback 컴포넌트에 에러 정보를 넘겨줌
+      return (
+        <GlobalErrorFallback
+          error={this.state.error}
+          onRetry={this.handleRetry}
+        />
+      );
     }
 
     return this.props.children;
