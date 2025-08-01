@@ -6,12 +6,14 @@ export function useGlobalErrorHandler() {
   const navigate = useNavigate();
   const setError = useErrorStore(state => state.setError);
 
-  const handleError = (error: any, customMessages?: Record<number, string>) => {
-    const status = error?.status;
-    const message = error?.message;
+  const handleError = (
+    error: unknown,
+    customMessages?: Record<number, string>
+  ) => {
+    const status = (error as { status?: number })?.status;
+    const message = (error as { message?: string })?.message;
 
-    // 커스텀 메시지가 있으면 우선 사용
-    if (customMessages && customMessages[status]) {
+    if (customMessages && status && customMessages[status]) {
       toast.error(customMessages[status]);
       return;
     }
@@ -20,12 +22,13 @@ export function useGlobalErrorHandler() {
       case 400:
         toast.error('잘못된 요청입니다.');
         break;
-      case 401:
+      case 401: {
         setError('로그인이 필요합니다.');
         sessionStorage.removeItem('userInfo');
         const currentPath = encodeURIComponent(window.location.pathname);
         navigate(`/login?redirect=${currentPath}`);
         break;
+      }
       case 403:
         toast.error('접근 권한이 없습니다.');
         break;

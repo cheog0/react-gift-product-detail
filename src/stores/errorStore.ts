@@ -6,8 +6,8 @@ interface ErrorState {
   clearError: () => void;
 }
 
-export const useErrorStore = create<ErrorState>((set) => ({
+export const useErrorStore = create<ErrorState>(set => ({
   errorMessage: null,
   setError: (message: string) => set({ errorMessage: message }),
   clearError: () => set({ errorMessage: null }),
-})); 
+}));

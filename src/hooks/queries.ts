@@ -239,7 +239,7 @@ export function useCreateOrderMutation() {
 
       navigate('/');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       handleError(error, {
         400: '받는 사람이 없습니다',
       });
@@ -262,7 +262,6 @@ export function useToggleWishMutation() {
       return { success: true };
     },
     onMutate: async ({ productId, isWished }) => {
-      // productWish 쿼리만 cancel하고 getQueryData 하도록 간소화
       await queryClient.cancelQueries({
         queryKey: queries.productWish.key(productId),
       });
@@ -287,7 +286,6 @@ export function useToggleWishMutation() {
       return { previousWish };
     },
     onError: (error, mutationVariables, context) => {
-      // 전역 에러 핸들러로 처리
       handleError(error);
 
       if (context?.previousWish) {
@@ -299,7 +297,6 @@ export function useToggleWishMutation() {
       }
     },
     onSettled: (_, __, variables) => {
-      // productWish 쿼리만 invalidateQueries 하여 서버와 상태 동기화
       queryClient.invalidateQueries({
         queryKey: queries.productWish.key(variables.productId),
       });
