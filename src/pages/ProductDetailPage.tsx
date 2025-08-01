@@ -139,7 +139,7 @@ export default function ProductDetailPage() {
                   <TabContent>
                     {reviewData?.reviews && reviewData.reviews.length > 0 ? (
                       <ReviewList>
-                        {reviewData.reviews.map((review: any) => (
+                        {reviewData.reviews.map(review => (
                           <ReviewItem key={review.id}>
                             <ReviewAuthor>{review.authorName}</ReviewAuthor>
                             <ReviewContent>{review.content}</ReviewContent>
@@ -158,10 +158,8 @@ export default function ProductDetailPage() {
                     productDetail.announcements.length > 0 ? (
                       <CleanDetailSection>
                         {productDetail.announcements
-                          .sort(
-                            (a: any, b: any) => a.displayOrder - b.displayOrder
-                          )
-                          .map((item: any, index: number) => (
+                          .sort((a, b) => a.displayOrder - b.displayOrder)
+                          .map((item, index: number) => (
                             <DetailSection key={index}>
                               <DetailSectionTitle>
                                 {item.name}
