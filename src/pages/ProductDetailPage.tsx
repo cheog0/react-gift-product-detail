@@ -181,8 +181,12 @@ export default function ProductDetailPage() {
                 <LikeButton onClick={handleWishClick} disabled={isPending}>
                   <Heart
                     size={20}
-                    fill={wishData?.isWished ? '#ff4757' : 'none'}
-                    color={wishData?.isWished ? '#ff4757' : '#666'}
+                    fill={wishData?.isWished ? theme.colors.red700 : 'none'}
+                    color={
+                      wishData?.isWished
+                        ? theme.colors.red700
+                        : theme.colors.gray700
+                    }
                   />
                   <LikeCount>{wishData?.wishCount || 0}</LikeCount>
                 </LikeButton>
