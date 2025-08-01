@@ -25,14 +25,27 @@ export default function ProductDetailPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>('상품설명');
 
-  const { data: productPageData } = useProductPageDataQuery(numericProductId);
-  const { product, productDetail, reviewData, wishData } = productPageData;
+  const { product, productDetail, reviewData, wishData } =
+    useProductPageDataQuery(numericProductId);
 
   const { mutate, isPending } = useToggleWishMutation();
 
   const handleBackClick = () => {
     navigate(-1);
   };
+
+  if (!product) {
+    return (
+      <AppContainer>
+        <MobileViewport>
+          <NavigationHeader title="상품 상세" onBackClick={handleBackClick} />
+          <div style={{ padding: theme.spacing.spacing4, textAlign: 'center' }}>
+            존재하지 않는 상품입니다.
+          </div>
+        </MobileViewport>
+      </AppContainer>
+    );
+  }
 
   const handleOrderClick = () => {
     if (product) {

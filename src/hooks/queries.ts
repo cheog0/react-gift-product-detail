@@ -1,10 +1,17 @@
 import {
   useSuspenseQuery,
+  useSuspenseQueries,
   useMutation,
   useQueryClient,
   useInfiniteQuery,
 } from '@tanstack/react-query';
-import type { GiftOrderForm, ProductWish } from '@/types';
+import type {
+  GiftOrderForm,
+  ProductWish,
+  Product,
+  ProductDetail,
+  ProductReview,
+} from '@/types';
 import type {
   LoginRequest,
   LoginResponse,
@@ -96,13 +103,7 @@ export function useSuspenseRankingProductsQuery(
 export function useSuspenseProductQuery(productId: string | number) {
   return useSuspenseQuery({
     queryKey: queries.product.key(productId),
-    queryFn: async () => {
-      const product = await queries.product.fn(productId);
-      if (!product) {
-        throw new Error('존재하지 않는 상품입니다');
-      }
-      return product;
-    },
+    queryFn: () => queries.product.fn(productId),
   });
 }
 
@@ -125,29 +126,39 @@ export function useSuspenseProductWishQuery(productId: string | number) {
   });
 }
 
-export function useProductPageDataQuery(productId: string | number) {
-  return useSuspenseQuery({
-    queryKey: ['productPage', productId],
-    queryFn: async () => {
-      const [product, productDetail, reviewData, wishData] = await Promise.all([
-        queries.product.fn(productId),
-        queries.productDetail.fn(productId),
-        queries.productReviews.fn(productId),
-        queries.productWish.fn(productId),
-      ]);
-
-      if (!product) {
-        throw new Error('존재하지 않는 상품입니다');
-      }
-
-      return {
-        product,
-        productDetail,
-        reviewData,
-        wishData,
-      };
-    },
+export function useProductPageDataQuery(productId: string | number): {
+  product: Product | null;
+  productDetail: ProductDetail | null;
+  reviewData: ProductReview | null;
+  wishData: ProductWish | null;
+} {
+  const results = useSuspenseQueries({
+    queries: [
+      {
+        queryKey: queries.product.key(productId),
+        queryFn: () => queries.product.fn(productId),
+      },
+      {
+        queryKey: queries.productDetail.key(productId),
+        queryFn: () => queries.productDetail.fn(productId),
+      },
+      {
+        queryKey: queries.productReviews.key(productId),
+        queryFn: () => queries.productReviews.fn(productId),
+      },
+      {
+        queryKey: queries.productWish.key(productId),
+        queryFn: () => queries.productWish.fn(productId),
+      },
+    ] as const,
   });
+
+  const product = results[0].data;
+  const productDetail = results[1].data;
+  const reviewData = results[2].data;
+  const wishData = results[3].data;
+
+  return { product, productDetail, reviewData, wishData };
 }
 
 export function useThemeProductsInfiniteQuery(
@@ -264,17 +275,28 @@ export function useToggleWishMutation() {
         queryKey: queries.productWish.key(productId),
       });
       await queryClient.cancelQueries({
-        queryKey: ['productPage', productId],
+        queryKey: queries.product.key(productId),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queries.productDetail.key(productId),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queries.productReviews.key(productId),
       });
 
       const previousWish = queryClient.getQueryData(
         queries.productWish.key(productId)
       ) as ProductWish | undefined;
 
-      const previousProductPage = queryClient.getQueryData([
-        'productPage',
-        productId,
-      ]);
+      const previousProduct = queryClient.getQueryData(
+        queries.product.key(productId)
+      );
+      const previousProductDetail = queryClient.getQueryData(
+        queries.productDetail.key(productId)
+      );
+      const previousProductReviews = queryClient.getQueryData(
+        queries.productReviews.key(productId)
+      );
 
       queryClient.setQueryData(
         queries.productWish.key(productId),
@@ -289,21 +311,16 @@ export function useToggleWishMutation() {
         }
       );
 
-      queryClient.setQueryData(['productPage', productId], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          wishData: {
-            ...old.wishData,
-            isWished: !isWished,
-            wishCount: isWished
-              ? (old.wishData?.wishCount || 0) - 1
-              : (old.wishData?.wishCount || 0) + 1,
-          },
-        };
-      });
+      // 개별 쿼리들을 업데이트하지 않고, wishData만 업데이트
+      // useProductPageDataQuery에서 각 쿼리를 개별적으로 관리하므로
+      // 여기서는 wishData 쿼리만 업데이트하면 됩니다
 
-      return { previousWish, previousProductPage };
+      return {
+        previousWish,
+        previousProduct,
+        previousProductDetail,
+        previousProductReviews,
+      };
     },
     onError: (_err, mutationVariables, context) => {
       if (context?.previousWish) {
@@ -313,13 +330,8 @@ export function useToggleWishMutation() {
           context.previousWish
         );
       }
-      if (context?.previousProductPage) {
-        const productId = mutationVariables.productId;
-        queryClient.setQueryData(
-          ['productPage', productId],
-          context.previousProductPage
-        );
-      }
+      // 개별 쿼리들을 복원하는 대신, wishData만 복원
+      // 다른 쿼리들은 서버에서 다시 가져오도록 함
     },
     onSettled: () => {},
   });
