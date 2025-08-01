@@ -51,11 +51,11 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useAuth as any).mockReturnValue({
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
       login: mockLogin,
     });
 
-    (useLoginMutation as any).mockReturnValue({
+    (useLoginMutation as ReturnType<typeof vi.fn>).mockReturnValue({
       mutateAsync: mockMutateAsync,
       isPending: false,
     });
@@ -172,7 +172,7 @@ describe('LoginPage', () => {
     });
 
     it('로딩 중일 때 버튼이 비활성화되고 로딩 텍스트를 표시한다', () => {
-      (useLoginMutation as any).mockReturnValue({
+      (useLoginMutation as ReturnType<typeof vi.fn>).mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: true,
       });

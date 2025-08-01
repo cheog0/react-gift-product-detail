@@ -43,7 +43,7 @@ describe('RankingSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useNavigate as any).mockReturnValue(mockNavigate);
+    (useNavigate as ReturnType<typeof vi.fn>).mockReturnValue(mockNavigate);
 
     render(
       <TestWrapper>

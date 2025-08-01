@@ -61,7 +61,9 @@ class ApiClient {
 
       try {
         errorData = await response.json();
-      } catch {}
+      } catch {
+        // JSON 파싱 실패 시 빈 객체 유지
+      }
 
       const errorMessage =
         errorData.data &&

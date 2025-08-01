@@ -52,8 +52,8 @@ export default function LoginPage() {
         name: userName,
       });
       handleRedirect(true);
-    } catch (error: any) {
-      const msg = error.message || '로그인에 실패했습니다.';
+    } catch (error: unknown) {
+      const msg = (error as Error)?.message || '로그인에 실패했습니다.';
       toast.error(msg);
     }
   };

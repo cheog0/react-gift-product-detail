@@ -2,6 +2,22 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import Typography from './Typography';
 
+type TypographyVariant =
+  | 'title1Bold'
+  | 'title1Regular'
+  | 'title2Bold'
+  | 'title2Regular'
+  | 'subtitle1Bold'
+  | 'subtitle1Regular'
+  | 'body1Bold'
+  | 'body1Regular'
+  | 'body2Bold'
+  | 'body2Regular'
+  | 'label1Bold'
+  | 'label1Regular'
+  | 'label2Bold'
+  | 'label2Regular';
+
 describe('Typography', () => {
   it('should render children correctly', () => {
     render(<Typography variant="body1Regular">Test content</Typography>);
@@ -94,7 +110,9 @@ describe('Typography', () => {
 
     variants.forEach(variant => {
       const { unmount } = render(
-        <Typography variant={variant as any}>{variant} Text</Typography>
+        <Typography variant={variant as TypographyVariant}>
+          {variant} Text
+        </Typography>
       );
 
       expect(screen.getByText(`${variant} Text`)).toBeInTheDocument();
