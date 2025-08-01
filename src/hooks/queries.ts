@@ -253,12 +253,13 @@ export function useToggleWishMutation() {
 
   return useMutation({
     mutationFn: async ({
-      productId: _productId,
-      isWished: _isWished,
+      productId,
+      isWished,
     }: {
       productId: number;
       isWished: boolean;
     }) => {
+      console.log(`${productId}, isWished: ${isWished}`);
       return { success: true };
     },
     onMutate: async ({ productId, isWished }) => {
@@ -296,10 +297,6 @@ export function useToggleWishMutation() {
         );
       }
     },
-    onSettled: (_, __, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queries.productWish.key(variables.productId),
-      });
-    },
+    onSettled: () => {},
   });
 }
